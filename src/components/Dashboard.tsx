@@ -355,8 +355,9 @@ export function Dashboard({ onCompanySelect, user }: { onCompanySelect?: (compan
       setTodos(todos);
     } catch (error) {
       console.error('Error loading todos:', error);
-      // Fallback to hardcoded todos
-      setTodos(hardcodedTodos);
+      // Fallback to hardcoded todos - but filter them based on user permissions
+      const filteredHardcodedTodos = hardcodedTodos.filter(todo => canViewTodo(todo));
+      setTodos(filteredHardcodedTodos);
     } finally {
       setIsLoading(false);
     }
@@ -383,10 +384,10 @@ export function Dashboard({ onCompanySelect, user }: { onCompanySelect?: (compan
   const canViewTodo = (todo: TodoItem): boolean => {
     if (!user) return false;
     
-    const currentUserFullName = `${user.firstName} ${user.lastName}`;
-    
     // CEO can see all todos
-    if (user.role === 'CEO') return true;
+    if (user.role === 'CEO') {
+      return true;
+    }
     
     // Secretary can only see CEO's todos
     if (user.role === 'Secretary') {

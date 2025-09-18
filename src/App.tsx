@@ -36,6 +36,61 @@ export default function App() {
     setIsLoading(false);
   }, []);
 
+  // Create test users for demo purposes
+  useEffect(() => {
+    const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+    
+    // Create CEO user if it doesn't exist
+    if (!registeredUsers.find((u: User) => u.role === 'CEO')) {
+      const ceoUser = {
+        id: 'ceo_1',
+        firstName: 'John',
+        lastName: 'Smith',
+        email: 'ceo@company.com',
+        role: 'CEO',
+        status: 'approved' as const,
+        registeredAt: new Date().toISOString().split('T')[0],
+        companyId: null,
+        permission: 'admin' as const
+      };
+      registeredUsers.push(ceoUser);
+    }
+    
+    // Create Secretary user if it doesn't exist
+    if (!registeredUsers.find((u: User) => u.role === 'Secretary')) {
+      const secretaryUser = {
+        id: 'secretary_1',
+        firstName: 'Sarah',
+        lastName: 'Johnson',
+        email: 'secretary@company.com',
+        role: 'Secretary',
+        status: 'approved' as const,
+        registeredAt: new Date().toISOString().split('T')[0],
+        companyId: null,
+        permission: 'admin' as const
+      };
+      registeredUsers.push(secretaryUser);
+    }
+    
+    // Create a test company user if it doesn't exist
+    if (!registeredUsers.find((u: User) => u.email === 'ahmet@techvision.com')) {
+      const companyUser = {
+        id: 'user_ahmet',
+        firstName: 'ahmet',
+        lastName: 'yuva',
+        email: 'ahmet@techvision.com',
+        role: 'User',
+        status: 'approved' as const,
+        registeredAt: new Date().toISOString().split('T')[0],
+        companyId: '1', // TechVision Inc
+        permission: 'user' as const
+      };
+      registeredUsers.push(companyUser);
+    }
+    
+    localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
+  }, []);
+
   const handleLogin = async (email: string, password: string) => {
     // Check for registered users
     const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
@@ -78,7 +133,7 @@ export default function App() {
       role: 'User',
       status: 'pending' as const,
       registeredAt: new Date().toISOString().split('T')[0],
-      companyId: null,           // Add missing companyId
+      companyId: '1',           // Assign to TechVision Inc by default
       permission: 'user' as const // Add missing permission
     };
 
