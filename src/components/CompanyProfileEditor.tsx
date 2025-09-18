@@ -198,6 +198,8 @@ export function CompanyProfileEditor({ companyId, onBack, onSave }: CompanyProfi
   const [newVideo, setNewVideo] = useState({ title: "", url: "", thumbnail: "" });
   const [newLeader, setNewLeader] = useState({ name: "", role: "", initials: "" });
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<{ title: string; url: string; thumbnail: string } | null>(null);
 
   // Memoize the company data to prevent unnecessary re-renders
   const memoizedCompanyData = useMemo(() => companyData, [companyData]);
@@ -752,7 +754,10 @@ export function CompanyProfileEditor({ companyId, onBack, onSave }: CompanyProfi
                 <div className="grid grid-cols-2 gap-3">
                   {companyData.gallery.map((image, index) => (
                     <div key={index} className="relative group">
-                      <div className="aspect-video rounded-lg overflow-hidden">
+                      <div 
+                        className="aspect-video rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => setSelectedImage(image)}
+                      >
                         <ImageWithFallback
                           src={image}
                           alt={`Gallery image ${index + 1}`}
@@ -905,15 +910,21 @@ export function CompanyProfileEditor({ companyId, onBack, onSave }: CompanyProfi
               <CardContent>
                 <div className="space-y-3">
                   {companyData.videos.map((video, index) => (
-                    <div key={index} className="flex items-center gap-3 p-3 border rounded-lg">
-                      <div className="w-16 h-12 rounded overflow-hidden flex-shrink-0">
+                    <div key={index} className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                      <div 
+                        className="w-16 h-12 rounded overflow-hidden flex-shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => setSelectedVideo(video)}
+                      >
                         <ImageWithFallback
                           src={video.thumbnail}
                           alt={video.title}
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      <div className="flex-1">
+                      <div 
+                        className="flex-1 cursor-pointer"
+                        onClick={() => setSelectedVideo(video)}
+                      >
                         <p className="font-medium">{video.title}</p>
                         <p className="text-sm text-muted-foreground">{video.duration}</p>
                       </div>
@@ -1120,6 +1131,62 @@ export function CompanyProfileEditor({ companyId, onBack, onSave }: CompanyProfi
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Image Modal */}
+      <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute top-4 right-4 z-10 bg-black/50 hover:bg-black/70 text-white"
+              onClick={() => setSelectedImage(null)}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+            {selectedImage && (
+              <ImageWithFallback
+                src={selectedImage}
+                alt="Full size image"
+                className="w-full h-auto max-h-[80vh] object-contain"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Video Modal */}
+      <Dialog open={!!selectedVideo} onOpenChange={() => setSelectedVideo(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute top-4 right-4 z-10 bg-black/50 hover:bg-black/70 text-white"
+              onClick={() => setSelectedVideo(null)}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+            {selectedVideo && (
+              <div className="space-y-4">
+                <div className="p-4 bg-muted/50">
+                  <h3 className="text-lg font-semibold">{selectedVideo.title}</h3>
+                </div>
+                <div className="aspect-video">
+                  <video
+                    src={selectedVideo.url}
+                    controls
+                    className="w-full h-full object-contain"
+                    poster={selectedVideo.thumbnail}
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
