@@ -58,20 +58,7 @@ const initialCompanies = [
   }
 ];
 
-const initialUsers = [
-  { id: "user1", firstName: "Alex", lastName: "Thompson", email: "alex@techvision.com", role: "CTO", status: "approved", registeredAt: "2020-01-01", companyId: "1", permission: "admin" },
-  { id: "user2", firstName: "Sarah", lastName: "Johnson", email: "sarah@techvision.com", role: "Product Manager", status: "approved", registeredAt: "2020-01-01", companyId: "1", permission: "manager" },
-  { id: "user3", firstName: "Michael", lastName: "Roberts", email: "michael@techvision.com", role: "Senior Developer", status: "approved", registeredAt: "2020-01-01", companyId: "1", permission: "user" },
-  { id: "user4", firstName: "Jennifer", lastName: "Kim", email: "jennifer@globalfinance.com", role: "CFO", status: "approved", registeredAt: "2018-01-01", companyId: "2", permission: "admin" },
-  { id: "user5", firstName: "David", lastName: "Park", email: "david@globalfinance.com", role: "Financial Analyst", status: "approved", registeredAt: "2018-01-01", companyId: "2", permission: "manager" },
-  { id: "user6", firstName: "Lisa", lastName: "Rodriguez", email: "lisa@globalfinance.com", role: "Investment Manager", status: "approved", registeredAt: "2018-01-01", companyId: "2", permission: "user" },
-  { id: "user7", firstName: "Robert", lastName: "Martinez", email: "robert@globalfinance.com", role: "Risk Analyst", status: "approved", registeredAt: "2018-01-01", companyId: "2", permission: "user" },
-  { id: "user8", firstName: "Amanda", lastName: "Lee", email: "amanda@retailsolutions.com", role: "Operations Manager", status: "approved", registeredAt: "2019-01-01", companyId: "3", permission: "admin" },
-  { id: "user9", firstName: "Carlos", lastName: "Anderson", email: "carlos@retailsolutions.com", role: "Marketing Director", status: "approved", registeredAt: "2019-01-01", companyId: "3", permission: "manager" },
-  { id: "user10", firstName: "Emily", lastName: "Davis", email: "emily@retailsolutions.com", role: "UX Designer", status: "approved", registeredAt: "2019-01-01", companyId: "3", permission: "user" },
-  { id: "user11", firstName: "Tom", lastName: "Wilson", email: "tom@freelance.com", role: "Consultant", status: "pending", registeredAt: "2021-01-01", companyId: null, permission: null },
-  { id: "user12", firstName: "Maria", lastName: "Garcia", email: "maria@contractor.com", role: "Business Analyst", status: "rejected", registeredAt: "2021-01-01", companyId: null, permission: null }
-];
+// No initial users - system starts empty and users are added dynamically
 
 export function CompanyManagement() {
   const [companies, setCompanies] = useState(initialCompanies);
@@ -102,18 +89,7 @@ export function CompanyManagement() {
   const loadUsers = () => {
     // Load registered users from localStorage
     const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-    
-    // If no users in localStorage, initialize with some sample data
-    if (registeredUsers.length === 0) {
-      const sampleUsers = initialUsers.map(user => ({
-        ...user,
-        status: user.status as 'pending' | 'approved' | 'rejected'
-      }));
-      localStorage.setItem('registeredUsers', JSON.stringify(sampleUsers));
-      setUsers(sampleUsers);
-    } else {
-      setUsers(registeredUsers);
-    }
+    setUsers(registeredUsers);
   };
 
   const saveUsers = (updatedUsers: RegisteredUser[]) => {

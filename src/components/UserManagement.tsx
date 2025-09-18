@@ -104,26 +104,6 @@ export function UserManagement() {
   const loadUsers = () => {
     // Load registered users from localStorage
     const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-    
-    // Add the CEO user if not already present
-    const ceoUser = {
-      id: 'user1',
-      firstName: 'John',
-      lastName: 'Smith',
-      email: 'john@holdings.com',
-      role: 'CEO',
-      status: 'approved' as const,
-      registeredAt: '2020-01-15',
-      companyId: null,
-      permission: 'admin' as const
-    };
-
-    const existingCEO = registeredUsers.find((u: RegisteredUser) => u.email === 'john@holdings.com');
-    if (!existingCEO) {
-      registeredUsers.unshift(ceoUser);
-      localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
-    }
-
     setUsers(registeredUsers);
   };
 

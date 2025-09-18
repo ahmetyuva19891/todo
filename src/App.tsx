@@ -3,6 +3,7 @@ import { Layout } from "./components/Layout";
 import { Login } from "./components/Login";
 import { Register } from "./components/Register";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { SupabaseTest } from "./components/SupabaseTest";
 
 interface User {
   id: string;
@@ -36,60 +37,6 @@ export default function App() {
   }, []);
 
   const handleLogin = async (email: string, password: string) => {
-    // CEO account - always approved
-    if (email === 'john@holdings.com' && password === 'demo123') {
-      const userData = {
-        id: 'user1',
-        firstName: 'John',
-        lastName: 'Smith',
-        email: 'john@holdings.com',
-        role: 'CEO',
-        status: 'approved' as const,
-        registeredAt: '2020-01-15',
-        companyId: null,
-        permission: 'admin' as const
-      };
-      setUser(userData);
-      localStorage.setItem('user', JSON.stringify(userData));
-      return;
-    }
-
-    // Secretary account - for testing
-    if (email === 'sarah@holdings.com' && password === 'demo123') {
-      const userData = {
-        id: 'secretary1',
-        firstName: 'Sarah',
-        lastName: 'Johnson',
-        email: 'sarah@holdings.com',
-        role: 'Secretary',
-        status: 'approved' as const,
-        registeredAt: '2020-01-15',
-        companyId: null,
-        permission: 'user' as const
-      };
-      setUser(userData);
-      localStorage.setItem('user', JSON.stringify(userData));
-      return;
-    }
-
-    // TechVision Manager account - for testing
-    if (email === 'mike@techvision.com' && password === 'demo123') {
-      const userData = {
-        id: 'tv_manager1',
-        firstName: 'Mike',
-        lastName: 'Chen',
-        email: 'mike@techvision.com',
-        role: 'Manager',
-        status: 'approved' as const,
-        registeredAt: '2020-01-15',
-        companyId: '1',
-        permission: 'manager' as const
-      };
-      setUser(userData);
-      localStorage.setItem('user', JSON.stringify(userData));
-      return;
-    }
-
     // Check for registered users
     const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
     const foundUser = registeredUsers.find((u: User) => u.email === email);
@@ -163,7 +110,10 @@ export default function App() {
     <ErrorBoundary>
       <div className="min-h-screen bg-background">
         {user ? (
-          <Layout user={user} onLogout={handleLogout} />
+          <>
+            <SupabaseTest />
+            <Layout user={user} onLogout={handleLogout} />
+          </>
         ) : (
           <>
             {authMode === 'login' ? (

@@ -125,13 +125,8 @@ export function TodoItem({ todo, currentUser, onComplete }: TodoItemProps) {
     if (!currentUser) return false;
     const currentUserFullName = `${currentUser.firstName} ${currentUser.lastName}`;
     
-    // Only assignor can complete tasks
-    if (todo.assignedBy === currentUserFullName) return true;
-    
-    // CEO can complete tasks assigned to CEO
-    if (currentUser.role === 'CEO' && todo.assignedTo === currentUserFullName) return true;
-    
-    return false;
+    // Only the person assigned to the task can complete it (including CEO)
+    return todo.assignedTo === currentUserFullName;
   };
   
   // Determine styling based on overdue status and assignment
@@ -334,7 +329,7 @@ export function TodoItem({ todo, currentUser, onComplete }: TodoItemProps) {
             </Badge>
             <Avatar className={`w-8 h-8 ${getAvatarStyling()}`}>
               <AvatarFallback className={`text-xs ${getAvatarFallbackStyling()}`}>
-                {todo.assignedTo.split(' ').map(n => n[0]).join('')}
+                {(todo.assignedTo || 'Unknown').split(' ').map(n => n[0]).join('')}
               </AvatarFallback>
             </Avatar>
           </div>

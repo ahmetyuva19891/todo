@@ -9,6 +9,7 @@ import { Calendar } from "./ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Badge } from "./ui/badge";
 import { CalendarIcon, Check, X, Upload, FileText, Image, FileSpreadsheet, Presentation, Trash2 } from "lucide-react";
+import { SuccessPopup } from "./SuccessPopup";
 
 interface TodoFormData {
   title: string;
@@ -34,6 +35,9 @@ interface User {
 
 interface AddTodoFormProps {
   currentUser?: User;
+  onTodoAdded?: () => void;
+  onClose?: () => void;
+  onScrollToTop?: () => void;
 }
 
 // Mock companies data
@@ -44,34 +48,16 @@ const companies = [
   { id: "4", name: "Manufacturing Pro" }
 ];
 
-// All users data
-const allUsers = [
-  { id: 'ceo', firstName: 'John', lastName: 'Smith', email: 'john@holdings.com', role: 'CEO', companyId: null },
-  { id: 'secretary', firstName: 'Sarah', lastName: 'Johnson', email: 'sarah@holdings.com', role: 'Secretary', companyId: null },
-  
-  // TechVision Inc users
-  { id: 'tv1', firstName: 'Mike', lastName: 'Chen', email: 'mike@techvision.com', role: 'Manager', companyId: '1' },
-  { id: 'tv2', firstName: 'Alex', lastName: 'Thompson', email: 'alex@techvision.com', role: 'Developer', companyId: '1' },
-  { id: 'tv3', firstName: 'Emily', lastName: 'Davis', email: 'emily@techvision.com', role: 'Designer', companyId: '1' },
-  { id: 'tv4', firstName: 'Amanda', lastName: 'Lee', email: 'amanda@techvision.com', role: 'QA Engineer', companyId: '1' },
-  
-  // Global Finance Corp users
-  { id: 'gfc1', firstName: 'Michael', lastName: 'Roberts', email: 'michael@globalfinance.com', role: 'CFO', companyId: '2' },
-  { id: 'gfc2', firstName: 'Robert', lastName: 'Thompson', email: 'robert@globalfinance.com', role: 'Analyst', companyId: '2' },
-  { id: 'gfc3', firstName: 'Lisa', lastName: 'Martinez', email: 'lisa@globalfinance.com', role: 'Accountant', companyId: '2' },
-  
-  // Retail Solutions Ltd users
-  { id: 'rsl1', firstName: 'Lisa', lastName: 'Rodriguez', email: 'lisa@retailsolutions.com', role: 'Manager', companyId: '3' },
-  { id: 'rsl2', firstName: 'Jennifer', lastName: 'Kim', email: 'jennifer@retailsolutions.com', role: 'Buyer', companyId: '3' },
-  { id: 'rsl3', firstName: 'Tom', lastName: 'Wilson', email: 'tom@retailsolutions.com', role: 'Sales Rep', companyId: '3' },
-  { id: 'rsl4', firstName: 'Carlos', lastName: 'Anderson', email: 'carlos@retailsolutions.com', role: 'Marketing', companyId: '3' },
-  { id: 'rsl5', firstName: 'Amanda', lastName: 'Rodriguez', email: 'amanda.r@retailsolutions.com', role: 'Analyst', companyId: '3' },
-  
-  // Manufacturing Pro users
-  { id: 'mp1', firstName: 'David', lastName: 'Park', email: 'david@manufacturingpro.com', role: 'Manager', companyId: '4' },
-  { id: 'mp2', firstName: 'Robert', lastName: 'Martinez', email: 'robert@manufacturingpro.com', role: 'Engineer', companyId: '4' },
-  { id: 'mp3', firstName: 'David', lastName: 'Martinez', email: 'david.m@manufacturingpro.com', role: 'Supervisor', companyId: '4' },
-];
+// Dynamic users - loaded from localStorage
+const getAllUsers = (): User[] => {
+  try {
+    const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+    return registeredUsers.filter((user: any) => user.status === 'approved');
+  } catch (error) {
+    console.error('Error loading users:', error);
+    return [];
+  }
+};
 
 const priorityOptions = [
   { value: 'high', label: 'High Priority', color: 'bg-destructive text-destructive-foreground' },
@@ -90,6 +76,12 @@ const fileTypeConfig = {
   'image/jpeg': { icon: Image, color: 'text-purple-600', name: 'JPEG' },
   'image/jpg': { icon: Image, color: 'text-purple-600', name: 'JPG' },
   'image/png': { icon: Image, color: 'text-purple-600', name: 'PNG' },
+  'image/gif': { icon: Image, color: 'text-purple-600', name: 'GIF' },
+  'image/webp': { icon: Image, color: 'text-purple-600', name: 'WebP' },
+  'video/mp4': { icon: FileText, color: 'text-indigo-600', name: 'MP4' },
+  'video/quicktime': { icon: FileText, color: 'text-indigo-600', name: 'MOV' },
+  'video/x-msvideo': { icon: FileText, color: 'text-indigo-600', name: 'AVI' },
+  'video/webm': { icon: FileText, color: 'text-indigo-600', name: 'WebM' },
   'application/pdf': { icon: FileText, color: 'text-red-600', name: 'PDF' }
 };
 
@@ -103,12 +95,20 @@ const allowedFileTypes = [
   'image/jpeg',
   'image/jpg', 
   'image/png',
+  'image/gif',
+  'image/webp',
+  'video/mp4',
+  'video/quicktime',
+  'video/x-msvideo',
+  'video/webm',
   'application/pdf'
 ];
 
-const maxFileSize = 10 * 1024 * 1024; // 10MB
+const maxFileSize = 10 * 1024 * 1024; // 10MB for documents and images
+const maxVideoSize = 50 * 1024 * 1024; // 50MB for videos
 
 export function AddTodoForm(props: AddTodoFormProps) {
+  const { currentUser, onTodoAdded } = props;
   const [formData, setFormData] = useState<TodoFormData>({
     title: '',
     description: '',
@@ -122,6 +122,12 @@ export function AddTodoForm(props: AddTodoFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [fileError, setFileError] = useState<string>('');
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [imageUrl, setImageUrl] = useState('');
+  const [videoUrl, setVideoUrl] = useState('');
+  const [videoTitle, setVideoTitle] = useState('');
+  const [thumbnailUrl, setThumbnailUrl] = useState('');
+
 
   // Helper function to get available companies based on user permissions
   const getAvailableCompanies = () => {
@@ -145,6 +151,8 @@ export function AddTodoForm(props: AddTodoFormProps) {
   const getAvailableUsers = () => {
     if (!props.currentUser) return [];
     
+    const allUsers = getAllUsers();
+    
     if (props.currentUser.role === 'CEO') {
       // CEO can assign to anyone + self
       return allUsers;
@@ -163,7 +171,7 @@ export function AddTodoForm(props: AddTodoFormProps) {
   };
 
   // Helper function to get company name from user
-  const getCompanyName = (user: typeof allUsers[0]) => {
+  const getCompanyName = (user: User) => {
     if (!user.companyId) return 'Holdings';
     return companies.find(c => c.id === user.companyId)?.name || 'Unknown';
   };
@@ -181,9 +189,13 @@ export function AddTodoForm(props: AddTodoFormProps) {
         return;
       }
       
-      // Check file size
-      if (file.size > maxFileSize) {
-        setFileError(`${file.name}: File size too large. Maximum size is 10MB.`);
+      // Check file size based on file type
+      const isVideo = file.type.startsWith('video/');
+      const maxSize = isVideo ? maxVideoSize : maxFileSize;
+      const maxSizeText = isVideo ? '50MB' : '10MB';
+      
+      if (file.size > maxSize) {
+        setFileError(`${file.name}: File size too large. Maximum size is ${maxSizeText}.`);
         return;
       }
       
@@ -215,6 +227,58 @@ export function AddTodoForm(props: AddTodoFormProps) {
     }));
   };
 
+  const handleAddImageUrl = () => {
+    if (!imageUrl.trim()) return;
+    
+    try {
+      // Create a mock file object for URL-based images
+      const imageFile = new File([''], `image_${Date.now()}.jpg`, {
+        type: 'image/jpeg'
+      });
+      
+      // Add URL as a custom property
+      (imageFile as any).url = imageUrl.trim();
+      (imageFile as any).isUrl = true;
+      
+      setFormData(prev => ({
+        ...prev,
+        attachments: [...prev.attachments, imageFile]
+      }));
+      
+      setImageUrl('');
+    } catch (error) {
+      setFileError('Invalid image URL');
+    }
+  };
+
+  const handleAddVideoUrl = () => {
+    if (!videoUrl.trim()) return;
+    
+    try {
+      // Create a mock file object for URL-based videos
+      const videoFile = new File([''], videoTitle.trim() || `video_${Date.now()}.mp4`, {
+        type: 'video/mp4'
+      });
+      
+      // Add URL, title, and thumbnail as custom properties
+      (videoFile as any).url = videoUrl.trim();
+      (videoFile as any).title = videoTitle.trim() || 'Video';
+      (videoFile as any).thumbnailUrl = thumbnailUrl.trim();
+      (videoFile as any).isUrl = true;
+      
+      setFormData(prev => ({
+        ...prev,
+        attachments: [...prev.attachments, videoFile]
+      }));
+      
+      setVideoUrl('');
+      setVideoTitle('');
+      setThumbnailUrl('');
+    } catch (error) {
+      setFileError('Invalid video URL');
+    }
+  };
+
   const getFileIcon = (file: File) => {
     const config = fileTypeConfig[file.type as keyof typeof fileTypeConfig];
     return config || { icon: FileText, color: 'text-gray-600', name: 'File' };
@@ -232,25 +296,92 @@ export function AddTodoForm(props: AddTodoFormProps) {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    setIsSubmitting(false);
-    setShowSuccess(true);
-    
-    // Reset form
-    setFormData({
-      title: '',
-      description: '',
-      priority: '',
-      dueDate: undefined,
-      companyId: '',
-      assignedTo: '',
-      attachments: []
-    });
-    
-    // Hide success message after 3 seconds
-    setTimeout(() => setShowSuccess(false), 3000);
+    try {
+      // Create todo object
+      const newTodo = {
+        id: `todo_${Date.now()}`,
+        title: formData.title,
+        description: formData.description,
+        priority: formData.priority as 'high' | 'medium' | 'low',
+        dueDate: formData.dueDate?.toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'short', 
+          day: 'numeric' 
+        }) || '',
+        createdDate: new Date().toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'short', 
+          day: 'numeric' 
+        }),
+        createdTime: new Date().toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit',
+          hour12: true 
+        }),
+        assignedBy: currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : 'Unknown',
+        assignedTo: formData.assignedTo,
+        companyId: formData.companyId,
+        companyName: companies.find(c => c.id === formData.companyId)?.name || 'Unknown',
+        attachments: formData.attachments.map((file, index) => ({
+          id: `att_${index}`,
+          name: file.name,
+          type: file.type,
+          size: file.size
+        })),
+        completed: false
+      };
+
+      // Save to Supabase via API
+             const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/todos`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(newTodo)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save todo');
+      }
+
+      setIsSubmitting(false);
+      setShowSuccess(true);
+      
+      // Scroll dialog to top after a brief delay to ensure popup is rendered
+      setTimeout(() => {
+        if (props.onScrollToTop) {
+          props.onScrollToTop();
+        } else {
+          // Fallback to window scroll if no dialog scroll function provided
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }, 100);
+      
+      // Refresh the todos list
+      if (onTodoAdded) {
+        onTodoAdded();
+      }
+      
+      // Reset form
+      setFormData({
+        title: '',
+        description: '',
+        priority: '',
+        dueDate: undefined,
+        companyId: '',
+        assignedTo: '',
+        attachments: []
+      });
+      setImageUrl('');
+      setVideoUrl('');
+      setVideoTitle('');
+      setThumbnailUrl('');
+      
+    } catch (error) {
+      console.error('Error saving todo:', error);
+      setIsSubmitting(false);
+      // You could add error state handling here
+    }
   };
 
   const isFormValid = formData.title && formData.description && formData.priority && 
@@ -258,15 +389,18 @@ export function AddTodoForm(props: AddTodoFormProps) {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      {/* Success Message */}
-      {showSuccess && (
-        <Card className="border-green-200 bg-green-50">
-          <CardContent className="flex items-center gap-2 pt-6">
-            <Check className="w-5 h-5 text-green-600" />
-            <span className="text-green-800">Todo created successfully!</span>
-          </CardContent>
-        </Card>
-      )}
+      {/* Success Popup */}
+      <SuccessPopup 
+        isOpen={showSuccess}
+        onClose={() => {
+          setShowSuccess(false);
+          if (props.onClose) {
+            props.onClose();
+          }
+        }}
+        title="Success!"
+        message="Your todo item is created successfully!"
+      />
 
       {/* Form */}
       <Card>
@@ -355,7 +489,7 @@ export function AddTodoForm(props: AddTodoFormProps) {
             {/* Due Date */}
             <div className="space-y-2">
               <Label>Due Date *</Label>
-              <Popover>
+              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -377,7 +511,10 @@ export function AddTodoForm(props: AddTodoFormProps) {
                   <Calendar
                     mode="single"
                     selected={formData.dueDate}
-                    onSelect={(date) => setFormData(prev => ({ ...prev, dueDate: date }))}
+                    onSelect={(date) => {
+                      setFormData(prev => ({ ...prev, dueDate: date }));
+                      setIsCalendarOpen(false); // Auto-close calendar when date is selected
+                    }}
                     initialFocus
                   />
                 </PopoverContent>
@@ -407,19 +544,62 @@ export function AddTodoForm(props: AddTodoFormProps) {
               </Select>
             </div>
 
-            {/* Attachments */}
-            <div className="space-y-2">
-              <Label>Attachments</Label>
+            {/* Images Section */}
+            <div className="space-y-4">
+              <div>
+                <Label className="text-base font-medium">Images</Label>
+                <p className="text-sm text-muted-foreground mt-1">Add images to your todo item</p>
+              </div>
+              
               <div className="space-y-3">
+                {/* Image URL Input */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Image URL</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Enter image URL"
+                      value={imageUrl}
+                      onChange={(e) => setImageUrl(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleAddImageUrl}
+                      disabled={!imageUrl.trim()}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Or search for stock images */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Or search for stock images:</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Search for images (e.g. 'office building')"
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                    >
+                      Search
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* File Upload Button */}
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full h-20 border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 hover:bg-muted/50"
+                  className="w-full h-16 border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 hover:bg-muted/50"
                   onClick={() => {
                     const input = document.createElement('input');
                     input.type = 'file';
                     input.multiple = true;
-                    input.accept = allowedFileTypes.join(',');
+                    input.accept = 'image/*';
                     input.onchange = (e) => {
                       const target = e.target as HTMLInputElement;
                       handleFileUpload(target.files);
@@ -428,15 +608,115 @@ export function AddTodoForm(props: AddTodoFormProps) {
                   }}
                 >
                   <div className="flex flex-col items-center gap-2">
-                    <Upload className="w-6 h-6 text-muted-foreground" />
-                    <div className="text-center">
-                      <p className="text-sm font-medium">Upload Files</p>
-                      <p className="text-xs text-muted-foreground">
-                        PowerPoint, Word, Excel, Images (Max 10MB each)
-                      </p>
-                    </div>
+                    <Image className="w-5 h-5 text-muted-foreground" />
+                    <span className="text-sm font-medium">Upload Image Files</span>
                   </div>
                 </Button>
+              </div>
+            </div>
+
+            {/* Videos Section */}
+            <div className="space-y-4">
+              <div>
+                <Label className="text-base font-medium">Videos</Label>
+                <p className="text-sm text-muted-foreground mt-1">Add videos to your todo item</p>
+              </div>
+              
+              <div className="space-y-3">
+                {/* Video Title */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Video Title</Label>
+                  <Input
+                    placeholder="Enter video title"
+                    value={videoTitle}
+                    onChange={(e) => setVideoTitle(e.target.value)}
+                  />
+                </div>
+                
+                {/* Video URL */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Video URL</Label>
+                  <Input
+                    placeholder="Enter video URL"
+                    value={videoUrl}
+                    onChange={(e) => setVideoUrl(e.target.value)}
+                  />
+                </div>
+                
+                {/* Thumbnail URL */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Thumbnail URL</Label>
+                  <Input
+                    placeholder="Enter thumbnail URL"
+                    value={thumbnailUrl}
+                    onChange={(e) => setThumbnailUrl(e.target.value)}
+                  />
+                </div>
+                
+                {/* Add Video Button */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleAddVideoUrl}
+                  disabled={!videoUrl.trim()}
+                  className="w-full"
+                >
+                  Add Video
+                </Button>
+                
+                {/* File Upload Button */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full h-16 border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 hover:bg-muted/50"
+                  onClick={() => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.multiple = true;
+                    input.accept = 'video/*';
+                    input.onchange = (e) => {
+                      const target = e.target as HTMLInputElement;
+                      handleFileUpload(target.files);
+                    };
+                    input.click();
+                  }}
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    <FileText className="w-5 h-5 text-muted-foreground" />
+                    <span className="text-sm font-medium">Upload Video Files</span>
+                  </div>
+                </Button>
+              </div>
+            </div>
+
+            {/* Documents Section */}
+            <div className="space-y-4">
+              <div>
+                <Label className="text-base font-medium">Documents</Label>
+                <p className="text-sm text-muted-foreground mt-1">Add documents and files to your todo item</p>
+              </div>
+              
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-16 border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 hover:bg-muted/50"
+                onClick={() => {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.multiple = true;
+                  input.accept = '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx';
+                  input.onchange = (e) => {
+                    const target = e.target as HTMLInputElement;
+                    handleFileUpload(target.files);
+                  };
+                  input.click();
+                }}
+              >
+                <div className="flex flex-col items-center gap-2">
+                  <Upload className="w-5 h-5 text-muted-foreground" />
+                  <span className="text-sm font-medium">Upload Documents</span>
+                </div>
+              </Button>
                 
                 {formData.attachments.length > 0 && (
                   <div className="space-y-2">
@@ -445,15 +725,30 @@ export function AddTodoForm(props: AddTodoFormProps) {
                       {formData.attachments.map((file, index) => {
                         const fileConfig = getFileIcon(file);
                         const IconComponent = fileConfig.icon;
+                        const isUrlFile = (file as any).isUrl;
+                        const fileUrl = (file as any).url;
+                        const videoTitle = (file as any).title;
+                        const thumbnailUrl = (file as any).thumbnailUrl;
                         
                         return (
                           <div key={index} className="flex items-center justify-between p-3 bg-muted/30 rounded-md border">
                             <div className="flex items-center gap-3">
                               <IconComponent className={`w-5 h-5 ${fileConfig.color}`} />
                               <div>
-                                <p className="text-sm font-medium truncate max-w-[200px]">{file.name}</p>
+                                <p className="text-sm font-medium truncate max-w-[200px]">
+                                  {isUrlFile ? (videoTitle || file.name) : file.name}
+                                </p>
                                 <p className="text-xs text-muted-foreground">
-                                  {fileConfig.name} • {formatFileSize(file.size)}
+                                  {isUrlFile ? (
+                                    <div className="space-y-1">
+                                      <div className="text-blue-600">URL: {fileUrl}</div>
+                                      {thumbnailUrl && (
+                                        <div className="text-green-600">Thumbnail: {thumbnailUrl}</div>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    `${fileConfig.name} • ${formatFileSize(file.size)}`
+                                  )}
                                 </p>
                               </div>
                             </div>
@@ -473,7 +768,6 @@ export function AddTodoForm(props: AddTodoFormProps) {
                   </div>
                 )}
               </div>
-            </div>
 
             {/* Form Actions */}
             <div className="flex gap-3 pt-4">
@@ -498,6 +792,10 @@ export function AddTodoForm(props: AddTodoFormProps) {
                     attachments: []
                   });
                   setFileError('');
+                  setImageUrl('');
+                  setVideoUrl('');
+                  setVideoTitle('');
+                  setThumbnailUrl('');
                 }}
               >
                 <X className="w-4 h-4 mr-2" />

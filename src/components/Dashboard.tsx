@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { CompanyCard } from "./CompanyCard";
 import { TodoItem } from "./TodoItem";
 import { CompletedTodoItem } from "./CompletedTodoItem";
 import { TodoAnalytics } from "./TodoAnalytics";
 import { AddTodoForm } from "./AddTodoForm";
+import { SuccessPopup } from "./SuccessPopup";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -42,36 +43,19 @@ const companies = [
   }
 ];
 
-// Mock users data
-const allUsers = [
-  { id: 'ceo', firstName: 'John', lastName: 'Smith', email: 'john@holdings.com', role: 'CEO', companyId: null },
-  { id: 'secretary', firstName: 'Sarah', lastName: 'Johnson', email: 'sarah@holdings.com', role: 'Secretary', companyId: null },
-  
-  // TechVision Inc users
-  { id: 'tv1', firstName: 'Mike', lastName: 'Chen', email: 'mike@techvision.com', role: 'Manager', companyId: '1' },
-  { id: 'tv2', firstName: 'Alex', lastName: 'Thompson', email: 'alex@techvision.com', role: 'Developer', companyId: '1' },
-  { id: 'tv3', firstName: 'Emily', lastName: 'Davis', email: 'emily@techvision.com', role: 'Designer', companyId: '1' },
-  { id: 'tv4', firstName: 'Amanda', lastName: 'Lee', email: 'amanda@techvision.com', role: 'QA Engineer', companyId: '1' },
-  
-  // Global Finance Corp users
-  { id: 'gfc1', firstName: 'Michael', lastName: 'Roberts', email: 'michael@globalfinance.com', role: 'CFO', companyId: '2' },
-  { id: 'gfc2', firstName: 'Robert', lastName: 'Thompson', email: 'robert@globalfinance.com', role: 'Analyst', companyId: '2' },
-  { id: 'gfc3', firstName: 'Lisa', lastName: 'Martinez', email: 'lisa@globalfinance.com', role: 'Accountant', companyId: '2' },
-  
-  // Retail Solutions Ltd users
-  { id: 'rsl1', firstName: 'Lisa', lastName: 'Rodriguez', email: 'lisa@retailsolutions.com', role: 'Manager', companyId: '3' },
-  { id: 'rsl2', firstName: 'Jennifer', lastName: 'Kim', email: 'jennifer@retailsolutions.com', role: 'Buyer', companyId: '3' },
-  { id: 'rsl3', firstName: 'Tom', lastName: 'Wilson', email: 'tom@retailsolutions.com', role: 'Sales Rep', companyId: '3' },
-  { id: 'rsl4', firstName: 'Carlos', lastName: 'Anderson', email: 'carlos@retailsolutions.com', role: 'Marketing', companyId: '3' },
-  { id: 'rsl5', firstName: 'Amanda', lastName: 'Rodriguez', email: 'amanda.r@retailsolutions.com', role: 'Analyst', companyId: '3' },
-  
-  // Manufacturing Pro users
-  { id: 'mp1', firstName: 'David', lastName: 'Park', email: 'david@manufacturingpro.com', role: 'Manager', companyId: '4' },
-  { id: 'mp2', firstName: 'Robert', lastName: 'Martinez', email: 'robert@manufacturingpro.com', role: 'Engineer', companyId: '4' },
-  { id: 'mp3', firstName: 'David', lastName: 'Martinez', email: 'david.m@manufacturingpro.com', role: 'Supervisor', companyId: '4' },
-];
+// Dynamic users - loaded from localStorage
+const getAllUsers = (): User[] => {
+  try {
+    const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+    return registeredUsers.filter((user: any) => user.status === 'approved');
+  } catch (error) {
+    console.error('Error loading users:', error);
+    return [];
+  }
+};
 
-const todos = [
+// Original hardcoded todos as fallback
+const hardcodedTodos = [
   {
     id: "1",
     title: "Complete Q4 Financial Report",
@@ -330,6 +314,58 @@ export function Dashboard({ onCompanySelect, user }: { onCompanySelect?: (compan
   const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
   const [showOverdueOnly, setShowOverdueOnly] = useState(false);
   const [showOnlyMe, setShowOnlyMe] = useState(false);
+  const [showCompletionSuccess, setShowCompletionSuccess] = useState(false);
+  const [completedTaskTitle, setCompletedTaskTitle] = useState('');
+  const dialogContentRef = useRef<HTMLDivElement>(null);
+  
+  // Load todos from Supabase
+  const [todos, setTodos] = useState<TodoItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load todos from Supabase
+  const loadTodos = async () => {
+    try {
+             const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/todos`);
+      const data = await response.json();
+      
+      // Filter out non-todo entries and map to expected format
+      const todos = data
+        .filter((item: any) => item.key && item.key.startsWith('todo_'))
+        .map((item: any) => {
+          const value = item.value || {};
+          return {
+            id: value.id || item.key,
+            title: value.title || 'Untitled',
+            description: value.description || '',
+            priority: (value.priority && ['high', 'medium', 'low'].includes(value.priority)) 
+              ? value.priority 
+              : 'medium',
+            dueDate: value.dueDate || '',
+            createdDate: value.createdDate || new Date().toLocaleDateString(),
+            createdTime: value.createdTime || new Date().toLocaleTimeString(),
+            assignedBy: value.assignedBy || 'Unknown',
+            assignedTo: value.assignedTo || 'Unknown',
+            companyId: value.companyId || '1',
+            companyName: value.companyName || 'Unknown Company',
+            attachments: Array.isArray(value.attachments) ? value.attachments : [],
+            completed: Boolean(value.completed)
+          };
+        });
+      
+      setTodos(todos);
+    } catch (error) {
+      console.error('Error loading todos:', error);
+      // Fallback to hardcoded todos
+      setTodos(hardcodedTodos);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Load todos from Supabase on component mount
+  useEffect(() => {
+    loadTodos();
+  }, []);
 
   // Separate completed todos from pending todos
   const allTodos = [...todos];
@@ -384,21 +420,65 @@ export function Dashboard({ onCompanySelect, user }: { onCompanySelect?: (compan
   };
 
   // Handle task completion
-  const handleCompleteTask = (todoId: string) => {
+  const handleCompleteTask = async (todoId: string) => {
     const todoIndex = allTodos.findIndex(todo => todo.id === todoId);
     if (todoIndex !== -1 && user) {
       const updatedTodo = {
         ...allTodos[todoIndex],
         completed: true,
-        completedAt: "Sept 18, 2025", // Current date
+        completedAt: new Date().toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'short', 
+          day: 'numeric' 
+        }),
         completedBy: `${user.firstName} ${user.lastName}`
       };
       
-      // In a real app, this would update the backend
-      console.log('Task completed:', updatedTodo);
-      
-      // For demo purposes, show success message
-      alert(`Task "${updatedTodo.title}" marked as complete!`);
+      try {
+        // Update the todo in Supabase
+               const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/todos`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(updatedTodo)
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to update todo in database');
+        }
+
+        // Update the local todos list
+        const updatedTodos = [...allTodos];
+        updatedTodos[todoIndex] = updatedTodo;
+        setTodos(updatedTodos);
+        
+        // Show success popup
+        setCompletedTaskTitle(updatedTodo.title);
+        setShowCompletionSuccess(true);
+        
+        // Auto-scroll to top to show the popup
+        setTimeout(() => {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 100);
+        
+        console.log('Task completed and saved to database:', updatedTodo);
+      } catch (error) {
+        console.error('Error updating todo completion:', error);
+        // Still update locally even if database update fails
+        const updatedTodos = [...allTodos];
+        updatedTodos[todoIndex] = updatedTodo;
+        setTodos(updatedTodos);
+        
+        // Show success popup
+        setCompletedTaskTitle(updatedTodo.title);
+        setShowCompletionSuccess(true);
+        
+        // Auto-scroll to top to show the popup
+        setTimeout(() => {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 100);
+      }
     }
   };
 
@@ -480,11 +560,26 @@ export function Dashboard({ onCompanySelect, user }: { onCompanySelect?: (compan
     setShowOnlyMe(false);
   };
 
+  // Function to scroll dialog to top
+  const scrollDialogToTop = () => {
+    if (dialogContentRef.current) {
+      dialogContentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   // Check if any filters are active
   const hasActiveFilters = selectedCompany !== null || priorityFilter !== null || showOverdueOnly || showOnlyMe;
 
   return (
     <div className="p-6 space-y-6">
+      {/* Completion Success Popup */}
+      <SuccessPopup 
+        isOpen={showCompletionSuccess}
+        onClose={() => setShowCompletionSuccess(false)}
+        title="Task Completed!"
+        message={`"${completedTaskTitle}" has been marked as complete. Congratulations!`}
+      />
+      
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
@@ -507,14 +602,19 @@ export function Dashboard({ onCompanySelect, user }: { onCompanySelect?: (compan
                 Add Todo
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogContent ref={dialogContentRef} className="max-w-4xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Create New Todo</DialogTitle>
                 <DialogDescription>
                   Add a new task and assign it to one of your portfolio companies.
                 </DialogDescription>
               </DialogHeader>
-              <AddTodoForm currentUser={user} />
+              <AddTodoForm 
+                currentUser={user} 
+                onTodoAdded={loadTodos} 
+                onClose={() => setIsAddTodoOpen(false)}
+                onScrollToTop={scrollDialogToTop}
+              />
             </DialogContent>
           </Dialog>
         )}

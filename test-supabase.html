@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Supabase Connection</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Test Supabase Connection</h1>
+    <button onclick="testConnection()">Test Save to Supabase</button>
+    <div id="result"></div>
+
+    <script>
+        const supabaseUrl = 'https://tqfluqzqeuttdkehszbf.supabase.co'
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRxZmx1cXpxZXV0dGRrZWhzemJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc5NTMwNjYsImV4cCI6MjA3MzUyOTA2Nn0.bimE2fEb5VI6HMHBHHUzBEhvyv1NgCr80uQsH7lrVdU'
+        
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
+
+        async function testConnection() {
+            try {
+                document.getElementById('result').innerHTML = 'Testing connection...'
+                
+                // First, let's test if we can connect at all
+                const { data: testData, error: testError } = await supabase
+                    .from('kv_store_a218721a')
+                    .select('*')
+                    .limit(1)
+
+                if (testError) {
+                    document.getElementById('result').innerHTML = 'Connection Error: ' + testError.message + '<br>Code: ' + testError.code
+                    return
+                }
+
+                // If connection works, try to save data
+                const { data, error } = await supabase
+                    .from('kv_store_a218721a')
+                    .upsert({
+                        key: 'test_todo_' + Date.now(),
+                        value: {
+                            id: 'test_' + Date.now(),
+                            title: 'Test Todo from Browser',
+                            description: 'This is a test todo saved from the browser',
+                            priority: 'high',
+                            completed: false
+                        }
+                    })
+
+                if (error) {
+                    document.getElementById('result').innerHTML = 'Save Error: ' + error.message + '<br>Code: ' + error.code
+                } else {
+                    document.getElementById('result').innerHTML = 'Success! Todo saved to Supabase. Check your database.<br>Data: ' + JSON.stringify(data)
+                }
+            } catch (err) {
+                document.getElementById('result').innerHTML = 'JavaScript Error: ' + err.message
+            }
+        }
+    </script>
+</body>
+</html>

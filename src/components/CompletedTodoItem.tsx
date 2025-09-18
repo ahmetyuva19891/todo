@@ -179,7 +179,7 @@ export function CompletedTodoItem({ todo }: CompletedTodoItemProps) {
             </Badge>
             <Avatar className="w-8 h-8 opacity-60">
               <AvatarFallback className="text-xs bg-muted text-muted-foreground">
-                {todo.assignedTo.split(' ').map(n => n[0]).join('')}
+                {(todo.assignedTo || 'Unknown').split(' ').map(n => n[0]).join('')}
               </AvatarFallback>
             </Avatar>
           </div>
