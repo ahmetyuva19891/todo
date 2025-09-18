@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Permission Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .user-info { background: #f0f0f0; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .todo { background: #e8f4f8; padding: 10px; margin: 5px 0; border-radius: 3px; }
+        .can-see { border-left: 4px solid green; }
+        .cannot-see { border-left: 4px solid red; opacity: 0.5; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Todo Permission Test</h1>
+    
+    <div class="user-info">
+        <h3>Current User:</h3>
+        <div id="userInfo">Not logged in</div>
+    </div>
+    
+    <div>
+        <h3>Test Users:</h3>
+        <button onclick="loginAs('ceo@company.com')">Login as CEO</button>
+        <button onclick="loginAs('secretary@company.com')">Login as Secretary</button>
+        <button onclick="loginAs('ahmet@techvision.com')">Login as Company User (TechVision)</button>
+        <button onclick="logout()">Logout</button>
+    </div>
+    
+    <div>
+        <h3>Sample Todos:</h3>
+        <div id="todosList"></div>
+    </div>
+
+    <script>
+        // Sample todos with different companies
+        const sampleTodos = [
+            {
+                id: "1",
+                title: "TechVision Task 1",
+                companyId: "1",
+                companyName: "TechVision Inc",
+                assignedTo: "ahmet yuva"
+            },
+            {
+                id: "2", 
+                title: "Global Finance Task 1",
+                companyId: "2",
+                companyName: "Global Finance Corp",
+                assignedTo: "Michael Roberts"
+            },
+            {
+                id: "3",
+                title: "CEO Task",
+                companyId: "1", 
+                companyName: "TechVision Inc",
+                assignedTo: "John Smith"
+            }
+        ];
+
+        function canViewTodo(todo, user) {
+            if (!user) return false;
+            
+            // CEO can see all todos
+            if (user.role === 'CEO') return true;
+            
+            // Secretary can only see CEO's todos
+            if (user.role === 'Secretary') {
+                return todo.assignedTo === 'John Smith' || todo.assignedBy === 'John Smith';
+            }
+            
+            // Company users can only see their company's todos
+            if (user.role === 'User' && user.companyId) {
+                return todo.companyId === user.companyId;
+            }
+            
+            return false;
+        }
+
+        function loginAs(email) {
+            const users = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+            const user = users.find(u => u.email === email);
+            
+            if (user) {
+                localStorage.setItem('user', JSON.stringify(user));
+                updateDisplay();
+            } else {
+                alert('User not found: ' + email);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('user');
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+            
+            // Show user info
+            if (user) {
+                document.getElementById('userInfo').innerHTML = `
+                    <strong>Name:</strong> ${user.firstName} ${user.lastName}<br>
+                    <strong>Email:</strong> ${user.email}<br>
+                    <strong>Role:</strong> ${user.role}<br>
+                    <strong>Company ID:</strong> ${user.companyId || 'None'}
+                `;
+            } else {
+                document.getElementById('userInfo').innerHTML = 'Not logged in';
+            }
+            
+            // Show todos
+            const todosList = document.getElementById('todosList');
+            todosList.innerHTML = '';
+            
+            sampleTodos.forEach(todo => {
+                const canSee = canViewTodo(todo, user);
+                const div = document.createElement('div');
+                div.className = `todo ${canSee ? 'can-see' : 'cannot-see'}`;
+                div.innerHTML = `
+                    <strong>${todo.title}</strong><br>
+                    Company: ${todo.companyName} (ID: ${todo.companyId})<br>
+                    Assigned to: ${todo.assignedTo}<br>
+                    <strong>Can see: ${canSee ? 'YES' : 'NO'}</strong>
+                `;
+                todosList.appendChild(div);
+            });
+        }
+
+        // Initialize display
+        updateDisplay();
+    </script>
+</body>
+</html>

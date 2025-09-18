@@ -492,6 +492,159 @@ export function CompanyProfileEditor({ companyId, onBack, onSave }: CompanyProfi
 
         {/* Media Management Tab */}
         <TabsContent value="media" className="space-y-6">
+          {/* Quick Upload Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Upload</CardTitle>
+              <CardDescription>Upload images and videos for your company profile</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Images Section */}
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-base font-medium">Images</Label>
+                    <p className="text-sm text-muted-foreground mt-1">Add images to your company gallery</p>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {/* Image URL Input */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Image URL</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Enter image URL"
+                          value={newImageUrl}
+                          onChange={(e) => setNewImageUrl(e.target.value)}
+                          className="flex-1"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            if (newImageUrl.trim()) {
+                              addImageToGallery(newImageUrl);
+                              setNewImageUrl('');
+                            }
+                          }}
+                          disabled={!newImageUrl.trim()}
+                        >
+                          Add
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    {/* File Upload Button */}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full h-16 border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 hover:bg-muted/50"
+                      onClick={() => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.multiple = true;
+                        input.accept = 'image/*';
+                        input.onchange = (e) => {
+                          const target = e.target as HTMLInputElement;
+                          if (target.files) {
+                            Array.from(target.files).forEach(file => {
+                              const fileUrl = URL.createObjectURL(file);
+                              addImageToGallery(fileUrl);
+                            });
+                          }
+                        };
+                        input.click();
+                      }}
+                    >
+                      <div className="flex flex-col items-center gap-2">
+                        <Image className="w-5 h-5 text-muted-foreground" />
+                        <span className="text-sm font-medium">Upload Image Files</span>
+                      </div>
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Videos Section */}
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-base font-medium">Videos</Label>
+                    <p className="text-sm text-muted-foreground mt-1">Add videos to your company profile</p>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {/* Video Title */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Video Title</Label>
+                      <Input
+                        placeholder="Enter video title"
+                        value={newVideo.title}
+                        onChange={(e) => setNewVideo({ ...newVideo, title: e.target.value })}
+                      />
+                    </div>
+                    
+                    {/* Video URL Input */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Video URL</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Enter video URL"
+                          value={newVideo.url}
+                          onChange={(e) => setNewVideo({ ...newVideo, url: e.target.value })}
+                          className="flex-1"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            if (newVideo.url.trim() && newVideo.title.trim()) {
+                              addVideo();
+                            }
+                          }}
+                          disabled={!newVideo.url.trim() || !newVideo.title.trim()}
+                        >
+                          Add
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    {/* File Upload Button */}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full h-16 border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 hover:bg-muted/50"
+                      onClick={() => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.multiple = true;
+                        input.accept = 'video/*';
+                        input.onchange = (e) => {
+                          const target = e.target as HTMLInputElement;
+                          if (target.files) {
+                            Array.from(target.files).forEach(file => {
+                              const fileUrl = URL.createObjectURL(file);
+                              setNewVideo({ 
+                                ...newVideo, 
+                                url: fileUrl,
+                                title: newVideo.title || file.name
+                              });
+                              addVideo();
+                            });
+                          }
+                        };
+                        input.click();
+                      }}
+                    >
+                      <div className="flex flex-col items-center gap-2">
+                        <Video className="w-5 h-5 text-muted-foreground" />
+                        <span className="text-sm font-medium">Upload Video Files</span>
+                      </div>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Photo Gallery */}
             <Card>
@@ -516,6 +669,7 @@ export function CompanyProfileEditor({ companyId, onBack, onSave }: CompanyProfi
                         </DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4">
+                        {/* Image URL Input */}
                         <div>
                           <Label htmlFor="imageUrl">Image URL</Label>
                           <Input
@@ -525,6 +679,37 @@ export function CompanyProfileEditor({ companyId, onBack, onSave }: CompanyProfi
                             placeholder="Enter image URL"
                           />
                         </div>
+                        
+                        {/* File Upload Button */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Or upload image files:</Label>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full h-16 border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 hover:bg-muted/50"
+                            onClick={() => {
+                              const input = document.createElement('input');
+                              input.type = 'file';
+                              input.multiple = true;
+                              input.accept = 'image/*';
+                              input.onchange = (e) => {
+                                const target = e.target as HTMLInputElement;
+                                if (target.files && target.files[0]) {
+                                  // Convert file to URL for preview
+                                  const fileUrl = URL.createObjectURL(target.files[0]);
+                                  setNewImageUrl(fileUrl);
+                                }
+                              };
+                              input.click();
+                            }}
+                          >
+                            <div className="flex flex-col items-center gap-2">
+                              <Image className="w-5 h-5 text-muted-foreground" />
+                              <span className="text-sm font-medium">Upload Image Files</span>
+                            </div>
+                          </Button>
+                        </div>
+                        
                         <div className="text-center">
                           <p className="text-sm text-muted-foreground mb-2">Or search for stock images:</p>
                           <div className="flex gap-2">
@@ -620,6 +805,8 @@ export function CompanyProfileEditor({ companyId, onBack, onSave }: CompanyProfi
                             placeholder="Enter video title"
                           />
                         </div>
+                        
+                        {/* Video URL Input */}
                         <div>
                           <Label htmlFor="videoUrl">Video URL</Label>
                           <Input
@@ -629,6 +816,41 @@ export function CompanyProfileEditor({ companyId, onBack, onSave }: CompanyProfi
                             placeholder="Enter video URL"
                           />
                         </div>
+                        
+                        {/* Video File Upload Button */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Or upload video files:</Label>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full h-16 border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 hover:bg-muted/50"
+                            onClick={() => {
+                              const input = document.createElement('input');
+                              input.type = 'file';
+                              input.multiple = true;
+                              input.accept = 'video/*';
+                              input.onchange = (e) => {
+                                const target = e.target as HTMLInputElement;
+                                if (target.files && target.files[0]) {
+                                  // Convert file to URL for preview
+                                  const fileUrl = URL.createObjectURL(target.files[0]);
+                                  setNewVideo({ 
+                                    ...newVideo, 
+                                    url: fileUrl,
+                                    title: newVideo.title || target.files[0].name
+                                  });
+                                }
+                              };
+                              input.click();
+                            }}
+                          >
+                            <div className="flex flex-col items-center gap-2">
+                              <Video className="w-5 h-5 text-muted-foreground" />
+                              <span className="text-sm font-medium">Upload Video Files</span>
+                            </div>
+                          </Button>
+                        </div>
+                        
                         <div>
                           <Label htmlFor="videoThumbnail">Thumbnail URL</Label>
                           <Input
@@ -637,6 +859,35 @@ export function CompanyProfileEditor({ companyId, onBack, onSave }: CompanyProfi
                             onChange={(e) => setNewVideo({ ...newVideo, thumbnail: e.target.value })}
                             placeholder="Enter thumbnail URL"
                           />
+                        </div>
+                        
+                        {/* Thumbnail Upload Button */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Or upload thumbnail image:</Label>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full h-16 border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 hover:bg-muted/50"
+                            onClick={() => {
+                              const input = document.createElement('input');
+                              input.type = 'file';
+                              input.accept = 'image/*';
+                              input.onchange = (e) => {
+                                const target = e.target as HTMLInputElement;
+                                if (target.files && target.files[0]) {
+                                  // Convert file to URL for preview
+                                  const fileUrl = URL.createObjectURL(target.files[0]);
+                                  setNewVideo({ ...newVideo, thumbnail: fileUrl });
+                                }
+                              };
+                              input.click();
+                            }}
+                          >
+                            <div className="flex flex-col items-center gap-2">
+                              <Image className="w-5 h-5 text-muted-foreground" />
+                              <span className="text-sm font-medium">Upload Thumbnail Image</span>
+                            </div>
+                          </Button>
                         </div>
                         <div className="flex justify-end gap-2">
                           <Button variant="outline" onClick={() => setIsAddingVideo(false)}>
