@@ -1,5 +1,5 @@
-import { ArrowLeft, ExternalLink, MapPin, Users, Calendar, DollarSign, Briefcase, Phone, Mail, Globe, CheckSquare, Edit } from "lucide-react";
-import { useMemo } from "react";
+import { ArrowLeft, ExternalLink, MapPin, Users, Calendar, DollarSign, Briefcase, Phone, Mail, Globe, CheckSquare, Edit, X } from "lucide-react";
+import { useMemo, useState } from "react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
@@ -7,6 +7,7 @@ import { Badge } from "./ui/badge";
 import { Separator } from "./ui/separator";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { TodoItem } from "./TodoItem";
+import { Dialog, DialogContent } from "./ui/dialog";
 
 interface CompanyDetailProps {
   companyId: string;
@@ -317,6 +318,8 @@ const todos = [
 
 export function CompanyDetail({ companyId, onBack, onEdit }: CompanyDetailProps) {
   const company = companyDetails[companyId as keyof typeof companyDetails];
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<{ title: string; url: string; thumbnail: string } | null>(null);
   
   // Memoize filtered todos to prevent recalculation on every render
   const companyTodos = useMemo(() => {
@@ -540,11 +543,15 @@ export function CompanyDetail({ companyId, onBack, onEdit }: CompanyDetailProps)
             <CardContent>
               <div className="grid grid-cols-1 gap-3">
                 {company.gallery.map((image, index) => (
-                  <div key={index} className="aspect-video rounded-lg overflow-hidden">
+                  <div 
+                    key={index} 
+                    className="aspect-video rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => setSelectedImage(image)}
+                  >
                     <ImageWithFallback
                       src={image}
                       alt={`${company.name} photo ${index + 1}`}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
+                      className="w-full h-full object-cover hover:scale-105 transition-transform"
                     />
                   </div>
                 ))}
@@ -560,7 +567,11 @@ export function CompanyDetail({ companyId, onBack, onEdit }: CompanyDetailProps)
             <CardContent>
               <div className="space-y-3">
                 {company.videos.map((video, index) => (
-                  <div key={index} className="group cursor-pointer">
+                  <div 
+                    key={index} 
+                    className="group cursor-pointer hover:bg-muted/50 transition-colors p-2 rounded-lg"
+                    onClick={() => setSelectedVideo(video)}
+                  >
                     <div className="relative aspect-video rounded-lg overflow-hidden mb-2">
                       <ImageWithFallback
                         src={video.thumbnail}
@@ -613,6 +624,62 @@ export function CompanyDetail({ companyId, onBack, onEdit }: CompanyDetailProps)
           </CardContent>
         </Card>
       </div>
+
+      {/* Image Modal */}
+      <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute top-4 right-4 z-10 bg-black/50 hover:bg-black/70 text-white"
+              onClick={() => setSelectedImage(null)}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+            {selectedImage && (
+              <ImageWithFallback
+                src={selectedImage}
+                alt="Full size image"
+                className="w-full h-auto max-h-[80vh] object-contain"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Video Modal */}
+      <Dialog open={!!selectedVideo} onOpenChange={() => setSelectedVideo(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute top-4 right-4 z-10 bg-black/50 hover:bg-black/70 text-white"
+              onClick={() => setSelectedVideo(null)}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+            {selectedVideo && (
+              <div className="space-y-4">
+                <div className="p-4 bg-muted/50">
+                  <h3 className="text-lg font-semibold">{selectedVideo.title}</h3>
+                </div>
+                <div className="aspect-video">
+                  <video
+                    src={selectedVideo.url}
+                    controls
+                    className="w-full h-full object-contain"
+                    poster={selectedVideo.thumbnail}
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

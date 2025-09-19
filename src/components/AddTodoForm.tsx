@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/
 import { Calendar } from "./ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Badge } from "./ui/badge";
-import { CalendarIcon, Check, X, Upload, FileText, Image, FileSpreadsheet, Presentation, Trash2 } from "lucide-react";
+import { CalendarIcon, Check, X, Upload, FileText, FileSpreadsheet, Presentation, Trash2 } from "lucide-react";
 import { SuccessPopup } from "./SuccessPopup";
 
 interface TodoFormData {
@@ -123,23 +123,29 @@ export function AddTodoForm(props: AddTodoFormProps) {
   const [showSuccess, setShowSuccess] = useState(false);
   const [fileError, setFileError] = useState<string>('');
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [imageUrl, setImageUrl] = useState('');
-  const [videoUrl, setVideoUrl] = useState('');
-  const [videoTitle, setVideoTitle] = useState('');
-  const [thumbnailUrl, setThumbnailUrl] = useState('');
+
+  // Function to clear localStorage and refresh users
+  const clearUserCache = () => {
+    localStorage.removeItem('registeredUsers');
+    window.location.reload();
+  };
 
 
   // Helper function to get available companies based on user permissions
   const getAvailableCompanies = () => {
     if (!props.currentUser) return [];
     
-    // CEO can assign to any company
-    if (props.currentUser.role === 'CEO') return companies;
+    // CEO and CEO's Secretary can assign to any company
+    if (props.currentUser.role === 'CEO' || props.currentUser.role === "CEO's Secretary") {
+      return companies;
+    }
     
-    // Secretary cannot create todos
-    if (props.currentUser.role === 'Secretary') return [];
+    // Manager and Secretary can assign within their assigned company
+    if ((props.currentUser.role === 'Manager' || props.currentUser.role === 'Secretary') && props.currentUser.companyId) {
+      return companies.filter(company => company.id === props.currentUser.companyId);
+    }
     
-    // Company users can only assign within their company
+    // Other company users can only assign within their company
     if (props.currentUser.companyId) {
       return companies.filter(company => company.id === props.currentUser.companyId);
     }
@@ -153,18 +159,36 @@ export function AddTodoForm(props: AddTodoFormProps) {
     
     const allUsers = getAllUsers();
     
-    if (props.currentUser.role === 'CEO') {
-      // CEO can assign to anyone + self
-      return allUsers;
+    // Remove duplicates based on user ID and also by email as a fallback
+    const uniqueUsers = allUsers.filter((user, index, self) => 
+      index === self.findIndex(u => u.id === user.id && u.email === user.email)
+    );
+    
+    // Additional debugging - log if we find duplicates
+    const ahmetUsers = uniqueUsers.filter(user => user.firstName === 'ahmet' && user.lastName === 'yuva');
+    if (ahmetUsers.length > 1) {
+      console.log('Found duplicate ahmet users:', ahmetUsers);
+    }
+    
+    if (props.currentUser.role === 'CEO' || props.currentUser.role === "CEO's Secretary") {
+      // CEO and CEO's Secretary can assign to anyone
+      return uniqueUsers;
     }
     
     if (props.currentUser.companyId) {
       // Company users can assign to:
       // 1. Internal company users
       // 2. CEO
-      const companyUsers = allUsers.filter(user => user.companyId === props.currentUser.companyId);
-      const ceo = allUsers.find(user => user.role === 'CEO');
-      return ceo ? [...companyUsers, ceo] : companyUsers;
+      // 3. CEO's Secretary
+      const companyUsers = uniqueUsers.filter(user => user.companyId === props.currentUser.companyId);
+      const ceo = uniqueUsers.find(user => user.role === 'CEO');
+      const ceoSecretary = uniqueUsers.find(user => user.role === "CEO's Secretary");
+      
+      const assignableUsers = [...companyUsers];
+      if (ceo) assignableUsers.push(ceo);
+      if (ceoSecretary) assignableUsers.push(ceoSecretary);
+      
+      return assignableUsers;
     }
     
     return [];
@@ -227,57 +251,6 @@ export function AddTodoForm(props: AddTodoFormProps) {
     }));
   };
 
-  const handleAddImageUrl = () => {
-    if (!imageUrl.trim()) return;
-    
-    try {
-      // Create a mock file object for URL-based images
-      const imageFile = new File([''], `image_${Date.now()}.jpg`, {
-        type: 'image/jpeg'
-      });
-      
-      // Add URL as a custom property
-      (imageFile as any).url = imageUrl.trim();
-      (imageFile as any).isUrl = true;
-      
-      setFormData(prev => ({
-        ...prev,
-        attachments: [...prev.attachments, imageFile]
-      }));
-      
-      setImageUrl('');
-    } catch (error) {
-      setFileError('Invalid image URL');
-    }
-  };
-
-  const handleAddVideoUrl = () => {
-    if (!videoUrl.trim()) return;
-    
-    try {
-      // Create a mock file object for URL-based videos
-      const videoFile = new File([''], videoTitle.trim() || `video_${Date.now()}.mp4`, {
-        type: 'video/mp4'
-      });
-      
-      // Add URL, title, and thumbnail as custom properties
-      (videoFile as any).url = videoUrl.trim();
-      (videoFile as any).title = videoTitle.trim() || 'Video';
-      (videoFile as any).thumbnailUrl = thumbnailUrl.trim();
-      (videoFile as any).isUrl = true;
-      
-      setFormData(prev => ({
-        ...prev,
-        attachments: [...prev.attachments, videoFile]
-      }));
-      
-      setVideoUrl('');
-      setVideoTitle('');
-      setThumbnailUrl('');
-    } catch (error) {
-      setFileError('Invalid video URL');
-    }
-  };
 
   const getFileIcon = (file: File) => {
     const config = fileTypeConfig[file.type as keyof typeof fileTypeConfig];
@@ -362,20 +335,16 @@ export function AddTodoForm(props: AddTodoFormProps) {
         onTodoAdded();
       }
       
-      // Reset form
-      setFormData({
-        title: '',
-        description: '',
-        priority: '',
-        dueDate: undefined,
-        companyId: '',
-        assignedTo: '',
-        attachments: []
-      });
-      setImageUrl('');
-      setVideoUrl('');
-      setVideoTitle('');
-      setThumbnailUrl('');
+            // Reset form
+            setFormData({
+              title: '',
+              description: '',
+              priority: '',
+              dueDate: undefined,
+              companyId: '',
+              assignedTo: '',
+              attachments: []
+            });
       
     } catch (error) {
       console.error('Error saving todo:', error);
@@ -544,151 +513,6 @@ export function AddTodoForm(props: AddTodoFormProps) {
               </Select>
             </div>
 
-            {/* Images Section */}
-            <div className="space-y-4">
-              <div>
-                <Label className="text-base font-medium">Images</Label>
-                <p className="text-sm text-muted-foreground mt-1">Add images to your todo item</p>
-              </div>
-              
-              <div className="space-y-3">
-                {/* Image URL Input */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Image URL</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Enter image URL"
-                      value={imageUrl}
-                      onChange={(e) => setImageUrl(e.target.value)}
-                      className="flex-1"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleAddImageUrl}
-                      disabled={!imageUrl.trim()}
-                    >
-                      Add
-                    </Button>
-                  </div>
-                </div>
-                
-                {/* Or search for stock images */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Or search for stock images:</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Search for images (e.g. 'office building')"
-                      className="flex-1"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                    >
-                      Search
-                    </Button>
-                  </div>
-                </div>
-                
-                {/* File Upload Button */}
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full h-16 border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 hover:bg-muted/50"
-                  onClick={() => {
-                    const input = document.createElement('input');
-                    input.type = 'file';
-                    input.multiple = true;
-                    input.accept = 'image/*';
-                    input.onchange = (e) => {
-                      const target = e.target as HTMLInputElement;
-                      handleFileUpload(target.files);
-                    };
-                    input.click();
-                  }}
-                >
-                  <div className="flex flex-col items-center gap-2">
-                    <Image className="w-5 h-5 text-muted-foreground" />
-                    <span className="text-sm font-medium">Upload Image Files</span>
-                  </div>
-                </Button>
-              </div>
-            </div>
-
-            {/* Videos Section */}
-            <div className="space-y-4">
-              <div>
-                <Label className="text-base font-medium">Videos</Label>
-                <p className="text-sm text-muted-foreground mt-1">Add videos to your todo item</p>
-              </div>
-              
-              <div className="space-y-3">
-                {/* Video Title */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Video Title</Label>
-                  <Input
-                    placeholder="Enter video title"
-                    value={videoTitle}
-                    onChange={(e) => setVideoTitle(e.target.value)}
-                  />
-                </div>
-                
-                {/* Video URL */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Video URL</Label>
-                  <Input
-                    placeholder="Enter video URL"
-                    value={videoUrl}
-                    onChange={(e) => setVideoUrl(e.target.value)}
-                  />
-                </div>
-                
-                {/* Thumbnail URL */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Thumbnail URL</Label>
-                  <Input
-                    placeholder="Enter thumbnail URL"
-                    value={thumbnailUrl}
-                    onChange={(e) => setThumbnailUrl(e.target.value)}
-                  />
-                </div>
-                
-                {/* Add Video Button */}
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleAddVideoUrl}
-                  disabled={!videoUrl.trim()}
-                  className="w-full"
-                >
-                  Add Video
-                </Button>
-                
-                {/* File Upload Button */}
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full h-16 border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 hover:bg-muted/50"
-                  onClick={() => {
-                    const input = document.createElement('input');
-                    input.type = 'file';
-                    input.multiple = true;
-                    input.accept = 'video/*';
-                    input.onchange = (e) => {
-                      const target = e.target as HTMLInputElement;
-                      handleFileUpload(target.files);
-                    };
-                    input.click();
-                  }}
-                >
-                  <div className="flex flex-col items-center gap-2">
-                    <FileText className="w-5 h-5 text-muted-foreground" />
-                    <span className="text-sm font-medium">Upload Video Files</span>
-                  </div>
-                </Button>
-              </div>
-            </div>
-
             {/* Documents Section */}
             <div className="space-y-4">
               <div>
@@ -718,56 +542,44 @@ export function AddTodoForm(props: AddTodoFormProps) {
                 </div>
               </Button>
                 
-                {formData.attachments.length > 0 && (
+              {fileError && <p className="text-red-500 text-sm mt-1">{fileError}</p>}
+              {formData.attachments.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Attached Files ({formData.attachments.length})</p>
                   <div className="space-y-2">
-                    <p className="text-sm font-medium">Attached Files ({formData.attachments.length})</p>
-                    <div className="space-y-2">
-                      {formData.attachments.map((file, index) => {
-                        const fileConfig = getFileIcon(file);
-                        const IconComponent = fileConfig.icon;
-                        const isUrlFile = (file as any).isUrl;
-                        const fileUrl = (file as any).url;
-                        const videoTitle = (file as any).title;
-                        const thumbnailUrl = (file as any).thumbnailUrl;
-                        
-                        return (
-                          <div key={index} className="flex items-center justify-between p-3 bg-muted/30 rounded-md border">
-                            <div className="flex items-center gap-3">
-                              <IconComponent className={`w-5 h-5 ${fileConfig.color}`} />
-                              <div>
-                                <p className="text-sm font-medium truncate max-w-[200px]">
-                                  {isUrlFile ? (videoTitle || file.name) : file.name}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {isUrlFile ? (
-                                    <div className="space-y-1">
-                                      <div className="text-blue-600">URL: {fileUrl}</div>
-                                      {thumbnailUrl && (
-                                        <div className="text-green-600">Thumbnail: {thumbnailUrl}</div>
-                                      )}
-                                    </div>
-                                  ) : (
-                                    `${fileConfig.name} • ${formatFileSize(file.size)}`
-                                  )}
-                                </p>
-                              </div>
+                    {formData.attachments.map((file, index) => {
+                      const fileConfig = getFileIcon(file);
+                      const IconComponent = fileConfig.icon;
+                      
+                      return (
+                        <div key={index} className="flex items-center justify-between p-3 bg-muted/30 rounded-md border">
+                          <div className="flex items-center gap-3">
+                            <IconComponent className={`w-5 h-5 ${fileConfig.color}`} />
+                            <div>
+                              <p className="text-sm font-medium truncate max-w-[200px]">
+                                {file.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {fileConfig.name} • {formatFileSize(file.size)}
+                              </p>
                             </div>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeAttachment(index)}
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
                           </div>
-                        );
-                      })}
-                    </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeAttachment(index)}
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
+            </div>
 
             {/* Form Actions */}
             <div className="flex gap-3 pt-4">
@@ -792,14 +604,18 @@ export function AddTodoForm(props: AddTodoFormProps) {
                     attachments: []
                   });
                   setFileError('');
-                  setImageUrl('');
-                  setVideoUrl('');
-                  setVideoTitle('');
-                  setThumbnailUrl('');
                 }}
               >
                 <X className="w-4 h-4 mr-2" />
                 Clear
+              </Button>
+              <Button 
+                type="button" 
+                variant="destructive"
+                onClick={clearUserCache}
+                title="Clear user cache to fix duplicate users"
+              >
+                Clear Cache
               </Button>
             </div>
           </form>

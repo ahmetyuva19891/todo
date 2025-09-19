@@ -389,9 +389,19 @@ export function Dashboard({ onCompanySelect, user }: { onCompanySelect?: (compan
       return true;
     }
     
-    // Secretary can only see CEO's todos
-    if (user.role === 'Secretary') {
-      return todo.assignedTo === 'John Smith' || todo.assignedBy === 'John Smith';
+    // CEO's Secretary can see all todos (same as CEO)
+    if (user.role === "CEO's Secretary") {
+      return true;
+    }
+    
+    // Manager can see todos from their assigned company
+    if (user.role === 'Manager' && user.companyId) {
+      return todo.companyId === user.companyId;
+    }
+    
+    // Secretary can see todos from their assigned company
+    if (user.role === 'Secretary' && user.companyId) {
+      return todo.companyId === user.companyId;
     }
     
     // Company users can only see their company's todos
@@ -409,8 +419,18 @@ export function Dashboard({ onCompanySelect, user }: { onCompanySelect?: (compan
     // CEO can see all companies
     if (user.role === 'CEO') return companies;
     
-    // Secretary cannot manage companies
-    if (user.role === 'Secretary') return [];
+    // CEO's Secretary can see all companies (same as CEO)
+    if (user.role === "CEO's Secretary") return companies;
+    
+    // Manager can see their assigned company
+    if (user.role === 'Manager' && user.companyId) {
+      return companies.filter(company => company.id === user.companyId);
+    }
+    
+    // Secretary can see their assigned company
+    if (user.role === 'Secretary' && user.companyId) {
+      return companies.filter(company => company.id === user.companyId);
+    }
     
     // Company users can only see their own company
     if (user.companyId) {

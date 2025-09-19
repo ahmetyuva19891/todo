@@ -111,6 +111,146 @@ const formatFileSize = (bytes: number) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
+// Helper function to download a file
+const downloadFile = (attachment: Attachment) => {
+  try {
+    let content: string;
+    let mimeType: string;
+    
+    // Create content based on file type
+    if (attachment.type.includes('pdf')) {
+      content = `%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Contents 4 0 R
+>>
+endobj
+
+4 0 obj
+<<
+/Length 44
+>>
+stream
+BT
+/F1 12 Tf
+72 720 Td
+(Demo PDF: ${attachment.name}) Tj
+ET
+endstream
+endobj
+
+xref
+0 5
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000204 00000 n 
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+297
+%%EOF`;
+      mimeType = 'application/pdf';
+    } else if (attachment.type.includes('excel') || attachment.type.includes('spreadsheet')) {
+      content = `File: ${attachment.name}
+Type: ${attachment.type}
+Size: ${formatFileSize(attachment.size)}
+
+This is a demo Excel file. In a real application, this would be the actual spreadsheet data.
+
+Column A    Column B    Column C
+Data 1      Data 2      Data 3
+Value 1     Value 2     Value 3`;
+      mimeType = 'text/csv';
+    } else if (attachment.type.includes('word') || attachment.type.includes('document')) {
+      content = `File: ${attachment.name}
+Type: ${attachment.type}
+Size: ${formatFileSize(attachment.size)}
+
+This is a demo Word document. In a real application, this would be the actual document content.
+
+# Document Title
+
+## Section 1
+This is a sample document with formatted text.
+
+## Section 2
+- Bullet point 1
+- Bullet point 2
+- Bullet point 3
+
+**Bold text** and *italic text* are supported.`;
+      mimeType = 'text/plain';
+    } else if (attachment.type.includes('powerpoint') || attachment.type.includes('presentation')) {
+      content = `File: ${attachment.name}
+Type: ${attachment.type}
+Size: ${formatFileSize(attachment.size)}
+
+This is a demo PowerPoint presentation. In a real application, this would be the actual presentation slides.
+
+Slide 1: Title Slide
+- Main Title: ${attachment.name}
+- Subtitle: Demo Presentation
+
+Slide 2: Content Slide
+- Point 1: Important information
+- Point 2: Key details
+- Point 3: Additional notes
+
+Slide 3: Conclusion
+- Summary of main points
+- Next steps
+- Questions?`;
+      mimeType = 'text/plain';
+    } else {
+      content = `File: ${attachment.name}
+Type: ${attachment.type}
+Size: ${formatFileSize(attachment.size)}
+
+This is a demo file. In a real application, this would be the actual file content.`;
+      mimeType = 'text/plain';
+    }
+    
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = attachment.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Clean up the URL object
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error downloading file:', error);
+    alert(`Error downloading ${attachment.name}. Please try again.`);
+  }
+};
+
 export function TodoItem({ todo, currentUser, onComplete }: TodoItemProps) {
   if (!todo || !todo.id) {
     console.warn('TodoItem received invalid todo data:', todo);
@@ -227,14 +367,14 @@ export function TodoItem({ todo, currentUser, onComplete }: TodoItemProps) {
           
           {/* Attachments Section */}
           {todo.attachments && todo.attachments.length > 0 && (
-            <div className="mb-3">
-              <div className={`flex items-center gap-2 text-sm mb-2 ${getMetadataStyling()}`}>
+            <div className="mb-4">
+              <div className={`flex items-center gap-2 text-sm mb-3 ${getMetadataStyling()}`}>
                 <Paperclip className="w-4 h-4" />
-                <span className="font-medium">
+                <span className="font-semibold">
                   {todo.attachments.length} Attachment{todo.attachments.length !== 1 ? 's' : ''}
                 </span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {todo.attachments.map((attachment) => {
                   const fileConfig = getFileIcon(attachment.type);
                   const IconComponent = fileConfig.icon;
@@ -242,50 +382,60 @@ export function TodoItem({ todo, currentUser, onComplete }: TodoItemProps) {
                   return (
                     <div 
                       key={attachment.id} 
-                      className={`flex items-center gap-2 p-2 rounded-md border transition-colors ${
+                      className={`group relative bg-white dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700 p-4 transition-all duration-200 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 ${
                         overdue 
-                          ? 'bg-red-50 border-red-200 hover:bg-red-100 dark:bg-red-950/10 dark:border-red-800 dark:hover:bg-red-950/20' 
+                          ? 'border-red-200 hover:border-red-300 dark:border-red-800 dark:hover:border-red-700' 
                           : isAssignedToMe
-                            ? 'bg-blue-50 border-blue-200 hover:bg-blue-100 dark:bg-blue-950/10 dark:border-blue-800 dark:hover:bg-blue-950/20'
-                            : 'bg-muted/50 border-muted hover:bg-muted'
+                            ? 'border-blue-200 hover:border-blue-300 dark:border-blue-800 dark:hover:border-blue-700'
+                            : ''
                       }`}
                     >
-                      <IconComponent className={`w-4 h-4 flex-shrink-0 ${fileConfig.color}`} />
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium truncate ${
-                          overdue ? 'text-red-900 dark:text-red-100' : 
-                          isAssignedToMe ? 'text-blue-900 dark:text-blue-100' : ''
+                      <div className="flex items-start gap-3">
+                        {/* File Icon */}
+                        <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${
+                          fileConfig.color === 'text-red-600' ? 'bg-red-100 dark:bg-red-900/20' :
+                          fileConfig.color === 'text-green-600' ? 'bg-green-100 dark:bg-green-900/20' :
+                          fileConfig.color === 'text-blue-600' ? 'bg-blue-100 dark:bg-blue-900/20' :
+                          fileConfig.color === 'text-orange-600' ? 'bg-orange-100 dark:bg-orange-900/20' :
+                          'bg-gray-100 dark:bg-gray-700'
                         }`}>
-                          {attachment.name}
-                        </p>
-                        <p className={`text-xs ${
-                          overdue ? 'text-red-600 dark:text-red-400' : 
-                          isAssignedToMe ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground'
-                        }`}>
-                          {fileConfig.name} • {formatFileSize(attachment.size)}
-                        </p>
+                          <IconComponent className={`w-5 h-5 ${
+                            fileConfig.color === 'text-red-600' ? 'text-red-600' :
+                            fileConfig.color === 'text-green-600' ? 'text-green-600' :
+                            fileConfig.color === 'text-blue-600' ? 'text-blue-600' :
+                            fileConfig.color === 'text-orange-600' ? 'text-orange-600' :
+                            'text-gray-600'
+                          }`} />
+                        </div>
+                        
+                        {/* File Info */}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate mb-1">
+                            {attachment.name}
+                          </h4>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {fileConfig.name} • {formatFileSize(attachment.size)}
+                          </p>
+                        </div>
+                        
+                        {/* Download Button */}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="flex-shrink-0 h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          onClick={() => {
+                            if (attachment.url) {
+                              // If we have a URL, open it directly
+                              window.open(attachment.url, '_blank');
+                            } else {
+                              // For files stored in memory, create a download
+                              downloadFile(attachment);
+                            }
+                          }}
+                        >
+                          <Download className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                        </Button>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className={`flex-shrink-0 h-8 w-8 p-0 ${
-                          overdue
-                            ? 'hover:bg-red-200 dark:hover:bg-red-900'
-                            : isAssignedToMe
-                              ? 'hover:bg-blue-200 dark:hover:bg-blue-900'
-                              : ''
-                        }`}
-                        onClick={() => {
-                          if (attachment.url) {
-                            window.open(attachment.url, '_blank');
-                          } else {
-                            // For demo purposes, show alert
-                            alert(`Downloading ${attachment.name}...`);
-                          }
-                        }}
-                      >
-                        <Download className="w-4 h-4" />
-                      </Button>
                     </div>
                   );
                 })}

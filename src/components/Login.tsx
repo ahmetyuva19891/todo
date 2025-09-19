@@ -9,9 +9,10 @@ import { Building2, Mail, Lock, Eye, EyeOff } from "lucide-react";
 interface LoginProps {
   onLogin: (email: string, password: string) => void;
   onSwitchToRegister: () => void;
+  onSwitchToCEO: () => void;
 }
 
-export function Login({ onLogin, onSwitchToRegister }: LoginProps) {
+export function Login({ onLogin, onSwitchToRegister, onSwitchToCEO }: LoginProps) {
   const [formData, setFormData] = useState({
     email: "",
     password: ""
@@ -119,6 +120,13 @@ export function Login({ onLogin, onSwitchToRegister }: LoginProps) {
                 onClick={onSwitchToRegister}
               >
                 Create Account
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100"
+                onClick={onSwitchToCEO}
+              >
+                CEO Registration
               </Button>
             </div>
           </CardContent>

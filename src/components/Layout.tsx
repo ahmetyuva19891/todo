@@ -6,6 +6,7 @@ import { CompanyDetail } from "./CompanyDetail";
 import { CompanyManagement } from "./CompanyManagement";
 import { UserManagement } from "./UserManagement";
 import { UserApproval } from "./UserApproval";
+import { Reports } from "./CompanyReports";
 
 // Lazy load the CompanyProfileEditor since it's a heavy component
 const CompanyProfileEditor = lazy(() => import("./CompanyProfileEditor").then(module => ({ default: module.CompanyProfileEditor })));
@@ -51,13 +52,8 @@ function CalendarView() {
   );
 }
 
-function ReportsView() {
-  return (
-    <div className="p-6">
-      <h1>Reports</h1>
-      <p className="text-muted-foreground">Generate and view company reports.</p>
-    </div>
-  );
+function ReportsView({ user }: { user: User }) {
+  return <Reports user={user} />;
 }
 
 function AnalyticsView() {
@@ -147,7 +143,7 @@ export function Layout({ user, onLogout }: LayoutProps) {
       case 'calendar':
         return <CalendarView />;
       case 'reports':
-        return <ReportsView />;
+        return <ReportsView user={user} />;
       case 'analytics':
         return <AnalyticsView />;
       case 'team':

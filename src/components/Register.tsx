@@ -9,9 +9,10 @@ import { Building2, Mail, Lock, Eye, EyeOff, User, CheckCircle, XCircle } from "
 interface RegisterProps {
   onRegister: (firstName: string, lastName: string, email: string, password: string) => void;
   onSwitchToLogin: () => void;
+  onSwitchToCEO: () => void;
 }
 
-export function Register({ onRegister, onSwitchToLogin }: RegisterProps) {
+export function Register({ onRegister, onSwitchToLogin, onSwitchToCEO }: RegisterProps) {
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -205,6 +206,13 @@ export function Register({ onRegister, onSwitchToLogin }: RegisterProps) {
                 onClick={onSwitchToLogin}
               >
                 Sign In
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100"
+                onClick={onSwitchToCEO}
+              >
+                CEO Registration
               </Button>
             </div>
           </CardContent>

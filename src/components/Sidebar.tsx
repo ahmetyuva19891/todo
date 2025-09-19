@@ -50,13 +50,13 @@ const menuItems = [
 export function Sidebar({ activeSection, onSectionChange, user, onLogout }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   
-  // Check if user is CEO
-  const isCEO = user.role === 'CEO';
+  // Check if user has CEO-level access
+  const hasCEOAccess = user.role === 'CEO' || user.role === "CEO's Secretary";
   
   // Filter CEO sections based on user role
   const getFilteredMenuItems = (section: string) => {
     const items = menuItems.filter(item => item.section === section);
-    if (section === 'ceo' && !isCEO) {
+    if (section === 'ceo' && !hasCEOAccess) {
       return [];
     }
     return items;
@@ -121,7 +121,7 @@ export function Sidebar({ activeSection, onSectionChange, user, onLogout }: Side
               </div>
 
               {/* CEO Section */}
-              {!isCollapsed && isCEO && getFilteredMenuItems('ceo').length > 0 && (
+              {!isCollapsed && hasCEOAccess && getFilteredMenuItems('ceo').length > 0 && (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 px-3 py-2">
                     <Crown className="w-4 h-4 text-yellow-600" />
@@ -151,7 +151,7 @@ export function Sidebar({ activeSection, onSectionChange, user, onLogout }: Side
               )}
 
               {/* Collapsed CEO Section */}
-              {isCollapsed && isCEO && getFilteredMenuItems('ceo').length > 0 && (
+              {isCollapsed && hasCEOAccess && getFilteredMenuItems('ceo').length > 0 && (
                 <div className="space-y-2">
                   <div className="flex justify-center">
                     <Crown className="w-4 h-4 text-yellow-600" />

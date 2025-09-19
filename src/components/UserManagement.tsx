@@ -33,10 +33,7 @@ const companies = [
 ];
 
 const roleOptions = [
-  "CEO", "CTO", "CFO", "COO", "VP Engineering", "VP Sales", "VP Marketing",
-  "Director", "Manager", "Senior Developer", "Developer", "Designer",
-  "Product Manager", "Project Manager", "Business Analyst", "Marketing Manager",
-  "Sales Manager", "Financial Analyst", "HR Manager", "Operations Manager"
+  "CEO", "CEO's Secretary", "Manager", "Secretary"
 ];
 
 const permissionLevels = [
