@@ -35,96 +35,13 @@ export default function App() {
     setIsLoading(false);
   }, []);
 
-  // Create test users for demo purposes
+  // Initialize empty user storage for production
   useEffect(() => {
-    const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-    
-    // Create CEO user if it doesn't exist
-    if (!registeredUsers.find((u: User) => u.role === 'CEO')) {
-      const ceoUser = {
-        id: 'ceo_1',
-        firstName: 'John',
-        lastName: 'Smith',
-        email: 'ceo@company.com',
-        role: 'CEO',
-        status: 'approved' as const,
-        registeredAt: new Date().toISOString().split('T')[0],
-        companyId: null,
-        permission: 'admin' as const
-      };
-      registeredUsers.push(ceoUser);
+    // Only initialize if no users exist (clean production start)
+    const existingUsers = localStorage.getItem('registeredUsers');
+    if (!existingUsers) {
+      localStorage.setItem('registeredUsers', JSON.stringify([]));
     }
-    
-    // Create CEO's Secretary user if it doesn't exist
-    if (!registeredUsers.find((u: User) => u.role === "CEO's Secretary")) {
-      const ceoSecretaryUser = {
-        id: 'ceo_secretary_1',
-        firstName: 'Sarah',
-        lastName: 'Johnson',
-        email: 'ceo.secretary@company.com',
-        role: "CEO's Secretary",
-        status: 'approved' as const,
-        registeredAt: new Date().toISOString().split('T')[0],
-        companyId: null,
-        permission: 'admin' as const
-      };
-      registeredUsers.push(ceoSecretaryUser);
-    }
-    
-    // Create Manager user if it doesn't exist
-    if (!registeredUsers.find((u: User) => u.role === 'Manager')) {
-      const managerUser = {
-        id: 'manager_1',
-        firstName: 'Michael',
-        lastName: 'Chen',
-        email: 'manager@company.com',
-        role: 'Manager',
-        status: 'approved' as const,
-        registeredAt: new Date().toISOString().split('T')[0],
-        companyId: '1', // TechVision Inc
-        permission: 'manager' as const
-      };
-      registeredUsers.push(managerUser);
-    }
-    
-    // Create Secretary user if it doesn't exist
-    if (!registeredUsers.find((u: User) => u.role === 'Secretary')) {
-      const secretaryUser = {
-        id: 'secretary_1',
-        firstName: 'Lisa',
-        lastName: 'Martinez',
-        email: 'secretary@company.com',
-        role: 'Secretary',
-        status: 'approved' as const,
-        registeredAt: new Date().toISOString().split('T')[0],
-        companyId: '2', // Global Finance Corp
-        permission: 'user' as const
-      };
-      registeredUsers.push(secretaryUser);
-    }
-    
-    // Create a test company user if it doesn't exist
-    if (!registeredUsers.find((u: User) => u.email === 'ahmet@techvision.com')) {
-      const companyUser = {
-        id: 'user_ahmet',
-        firstName: 'ahmet',
-        lastName: 'yuva',
-        email: 'ahmet@techvision.com',
-        role: 'User',
-        status: 'approved' as const,
-        registeredAt: new Date().toISOString().split('T')[0],
-        companyId: '1', // TechVision Inc
-        permission: 'user' as const
-      };
-      registeredUsers.push(companyUser);
-    }
-    
-    // Remove any duplicate users based on email
-    const uniqueUsers = registeredUsers.filter((user, index, self) => 
-      index === self.findIndex(u => u.email === user.email)
-    );
-    
-    localStorage.setItem('registeredUsers', JSON.stringify(uniqueUsers));
   }, []);
 
   const handleLogin = async (email: string, password: string) => {

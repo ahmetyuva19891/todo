@@ -15,33 +15,8 @@ import { Label } from "./ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Plus, Filter, X, User, BarChart3, CheckCircle } from "lucide-react";
 
-// Mock data
-const companies = [
-  {
-    id: "1",
-    name: "TechVision Inc",
-    logo: "https://images.unsplash.com/photo-1746046936818-8d432ebd3d0e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjB0ZWNoJTIwY29tcGFueSUyMGxvZ288ZW58MXx8fHwxNzU3ODYzNjAxfDA&ixlib=rb-4.1.0&q=80&w=1080",
-    todoCount: 3
-  },
-  {
-    id: "2",
-    name: "Global Finance Corp",
-    logo: "https://images.unsplash.com/photo-1684128169771-f4ff82dffbb5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmaW5hbmNlJTIwY29ycG9yYXRlJTIwYnVpbGRpbmd8ZW58MXx8fHwxNzU3OTUzODk2fDA&ixlib=rb-4.1.0&q=80&w=1080",
-    todoCount: 4
-  },
-  {
-    id: "3",
-    name: "Retail Solutions Ltd",
-    logo: "https://images.unsplash.com/photo-1590764095558-abd89de9db5f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyZXRhaWwlMjBzdG9yZSUyMHNob3BwaW5nfGVufDF8fHx8MTc1Nzk1Mzg5OXww&ixlib=rb-4.1.0&q=80&w=1080",
-    todoCount: 3
-  },
-  {
-    id: "4",
-    name: "Manufacturing Pro",
-    logo: "https://images.unsplash.com/photo-1717386255773-1e3037c81788?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtYW51ZmFjdHVyaW5nJTIwZmFjdG9yeXxlbnwxfHx8fDE3NTc5NTM5MDF8MA&ixlib=rb-4.1.0&q=80&w=1080",
-    todoCount: 2
-  }
-];
+// Companies will be loaded dynamically from user data
+const companies: any[] = [];
 
 // Dynamic users - loaded from localStorage
 const getAllUsers = (): User[] => {
@@ -355,9 +330,8 @@ export function Dashboard({ onCompanySelect, user }: { onCompanySelect?: (compan
       setTodos(todos);
     } catch (error) {
       console.error('Error loading todos:', error);
-      // Fallback to hardcoded todos - but filter them based on user permissions
-      const filteredHardcodedTodos = hardcodedTodos.filter(todo => canViewTodo(todo));
-      setTodos(filteredHardcodedTodos);
+      // No fallback data in production - start with empty state
+      setTodos([]);
     } finally {
       setIsLoading(false);
     }

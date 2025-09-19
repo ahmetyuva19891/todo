@@ -132,18 +132,6 @@ export function Login({ onLogin, onSwitchToRegister, onSwitchToCEO }: LoginProps
           </CardContent>
         </Card>
 
-        {/* Demo Credentials */}
-        <Card className="mt-4 bg-muted/50">
-          <CardContent className="pt-4">
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-2">Demo Credentials:</p>
-              <div className="space-y-1 text-sm">
-                <p><span className="font-medium">Email:</span> john@holdings.com</p>
-                <p><span className="font-medium">Password:</span> demo123</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
